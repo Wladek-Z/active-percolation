@@ -20,9 +20,11 @@ def power_phase_diagram_data(filename, N, T, dt, w, D, mu):
         D: dimensionless diffusion constant
         mu: dimensionless repulsion strength
     """
-    # Generate list of Peclet numbers to probe
-    Pe_list = np.arange(0, 6, 1)
-    Pf_list = np.arange(0, 6, 1)
+    # Generate list of Peclet numbers to probe, from user input
+    arr = input("Enter range of Peclet numbers to probe (Pe- Pe+ Pf- Pf+): ") 
+    l = list(map(float,arr.split(' ')))
+    Pe_list = np.linspace(l[0], l[1], 5)
+    Pf_list = np.linspace(l[2], l[3], 5)
 
     with open(filename, 'w') as f:
         f.write("Pe,Pf,alpha\n")

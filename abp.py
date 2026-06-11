@@ -343,10 +343,24 @@ class ABP:
         """
         # Get all x positions
         x = data[:, :, 0]
-        # Find when each particle has crossed the target
+        # Define condition for particle crossing the target
         crossed = x >= target
-        
+        # Identify all particles that successfully crossed the target
+        has_crossed = np.any(crossed, axis=0)
+        # Obtain first crossing of each particle
+        first = np.argmax(crossed, axis=0)
+        # Discard all unsuccessful attempts and convert to time units
+        fpt = first[has_crossed] * self.dt
+        success_rate = len(fpt) / self.N * 100
 
+        # Build histogram of the FPTD
+        fig = plt.figure(figsize=[8, 6])
+        plt.hist(fpt, bins='auto')
+        plt.title(f"First-Passage Time Distribution\nTarget: {target}" + r"$\sigma$, " + f"Success Rate: {success_rate}%")
+        plt.xlabel("time [$1/D_r$]")
+        plt.ylabel("crossings")
+        plt.tight_layout()
+        plt.show()
 
 if __name__ == "__main__":
     # Parse command line arguments
