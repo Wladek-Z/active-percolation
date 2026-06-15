@@ -263,5 +263,8 @@ if __name__ == "__main__":
     parser.add_argument('-d', choices=[2, 3], type=int, default=2, help='Dimensionality of the system')
     args = parser.parse_args()
 
-    abp = ABP(args.N, args.dt, args.d)
-    abp.Run(args.v, args.t, args.MSD, args.trajectory)
+    r_list = np.array([[[1, 0], [0, 0]], [[3, 0], [2, 0]]])
+    r_mag = np.linalg.norm(r_list, axis=2)
+    v = r_mag / 0.1
+    v_mean = np.mean(v)
+    print(v_mean)

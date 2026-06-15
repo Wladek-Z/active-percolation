@@ -6,10 +6,11 @@ from abp import ABP
 plt.style.use('science')
 plt.rcParams['text.usetex'] = False
 
-def power_phase_diagram_data(filename, N, T, dt, w, D, mu):
+def phase_diagram_data(filename, N, T, dt, w, D, mu):
     """
     Collect data for a phase diagram of the ABP system by varying the two Peclet numbers
-    and recording the power-law dependence of the resultant MSDs.
+    and recording the power-law dependence of the resultant MSDs, as well as the fraction
+    of analytical mean flow velocity compared to mean particle velocity.
 
     Arguments:
         filename: file to record the data
@@ -28,7 +29,7 @@ def power_phase_diagram_data(filename, N, T, dt, w, D, mu):
     Pf_list = np.round(np.linspace(l[2], l[3], number_points), 2)
 
     with open(filename, 'w') as f:
-        f.write("Pe,Pf,alpha\n")
+        f.write("Pe,Pf,alpha,fraction\n")
 
         for Pe in Pe_list:
             for Pf in Pf_list:
@@ -36,30 +37,42 @@ def power_phase_diagram_data(filename, N, T, dt, w, D, mu):
                 r, e = abp.Run()
                 _, msd = abp.get_MSD(r)
                 a, _ = abp.get_MSD_fit(msd)
+                frac = abp.get_fraction(r)
                 # Track progress
-                print(f"Pe = {Pe}, Pf = {Pf}, alpha = {a}")
-                f.write(f"{Pe},{Pf},{a}\n")
+                print(f"Pe = {Pe}, Pf = {Pf}, alpha = {a}, fraction = {frac}")
+                f.write(f"{Pe},{Pf},{a},{frac}\n")
 
-def power_phase_diagram_plot(filename):
+def phase_diagram_plot(filename):
     """
-    Plot the phase diagram for the ABP system in the Peclet number plane,
-    displaying the fitted exponent of the late-time MSD.
+    Plot the two phase diagrams for the ABP system in the Peclet number plane,
+    displaying the fitted exponent of the late-time MSD on one, and the fraction 
+    <u>/<v> on the other.
     
     Arguments:
         filename: file to stored data
     """
     # Read in and interpret data
-    Pe, Pf, a = np.loadtxt(filename, delimiter=',', skiprows=1, unpack=True)
+    Pe, Pf, a, frac = np.loadtxt(filename, delimiter=',', skiprows=1, unpack=True)
     nPe, nPf = np.unique(Pe), np.unique(Pf)
     size_x = len(nPe)
     size_y = len(nPf)
     A = a.reshape(size_x, size_y).T
+    Frac = frac.reshape(size_x, size_y).T
     X, Y = np.meshgrid(nPe, nPf)
-    # Plot heat map
+    # Plot heat map 1
     fig = plt.figure(figsize=[8, 6])
     plt.title("ABP Channel Phase Diagram")
     plt.pcolormesh(X, Y, A, cmap='viridis', shading='auto')
     plt.colorbar(label=r'MSD scaling exoponent, $\alpha$')
+    plt.xlabel("active Peclet number, Pe")
+    plt.ylabel("flow Peclet number, Pe$_f$")
+    plt.tight_layout()
+    plt.show()
+    # Plot heat map 2
+    fig = plt.figure(figsize=[8, 6])
+    plt.title("ABP Channel Phase Diagram")
+    plt.pcolormesh(Frac, Y, A, cmap='viridis', shading='auto')
+    plt.colorbar(label=r'mean velocity ratio, $\langle u \rangle/\langle v \rangle$')
     plt.xlabel("active Peclet number, Pe")
     plt.ylabel("flow Peclet number, Pe$_f$")
     plt.tight_layout()
@@ -82,14 +95,14 @@ if __name__ == "__main__":
     parser.add_argument('-D', type=float, default=1, help='Dimensionless ratio of diffusion constants')
     parser.add_argument('-x', type=float, default=20, help='Distance along x-axis to check for first-passage')
     parser.add_argument('-f', type=str, default=None, help='Filepath to data for reading/writing')
-    parser.add_argument('--PPD', action='store_true', help='Construct the power-law phase diagram')
+    parser.add_argument('--PD', action='store_true', help='Construct the phase diagram')
     parser.add_argument('--data', action='store_true', help='Collect data for selected task')
     parser.add_argument('--plot', action='store_true', help='Plot results for selected task')
     args = parser.parse_args()
 
     if args.data:
-        if args.PPD:
-            power_phase_diagram_data(args.f, args.N, args.T, args.dt, args.w, args.D, args.mu)
+        if args.PD:
+            phase_diagram_data(args.f, args.N, args.T, args.dt, args.w, args.D, args.mu)
     elif args.plot:
-        if args.PPD:
-            power_phase_diagram_plot(args.f)
+        if args.PD:
+            phase_diagram_plot(args.f)

@@ -11,6 +11,7 @@ plt.rcParams['text.usetex'] = False
 
 # Developer tools ;)
 d_crit = 2**(1/6)
+d = 2
 noise = 1
 wall = True
 use_arrows = False
@@ -260,8 +261,6 @@ class ABP:
         """
         # Create array of measurement times
         t = np.arange(1, self.T + 1) * self.dt
-        # System is 2-dimensional
-        d = 2
         # Calculate persistence time
         tau = 1 / (d - 1) 
         # Consider only late-time data, i.e. >> tau
@@ -272,6 +271,35 @@ class ABP:
         a, b = np.polyfit(x, y, 1)
         # return fitted parameters
         return a, b
+    
+    def get_fraction(self, data):
+        """
+        Obtain the analytical mean flow velocity divided by the average particle velocity
+        in the late-time regime.
+        
+        Arguments:
+            data: position history
+        
+        Returns:
+            fraction <u>/<v>
+        """
+        # Define analytical mean flow velocity
+        u_mean = 2 / 3 * self.Pf
+        # Create array of measurement times
+        t = np.arange(1, self.T + 1) * self.dt
+        # Define late-time regime via tau
+        tau = 1 / (d - 1) 
+        late = t >= 10 * tau
+        r = data[late]
+        # Create array of position increments, shape (T_late, N, 2)
+        dr = r[1:] - r[:-1]
+        # Transform into array of distances travelled at each timestep, shape (T_late, N)
+        dr_mag = np.linal.norm(dr, axis=2)
+        # Obtain mean particle velocity by dividing by dt, taking overall mean
+        v = dr_mag / self.dt
+        v_mean = np.mean(v)
+        # return fraction of mean velocities
+        return u_mean / v_mean
 
     def MSD(self, data):
         """
@@ -285,8 +313,6 @@ class ABP:
 
         # Create array of measurement times
         t = np.arange(1, self.T + 1) * self.dt
-        # System is 2-dimensional
-        d = 2
         # Calculate persistence time
         tau = 1 / (d - 1) 
         # Theoretical mean square displacement
