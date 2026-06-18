@@ -1,12 +1,12 @@
 #!/bin/bash
 
-#SBATCH --partition medium
+#SBATCH --partition short
 #SBATCH --mem-per-cpu 8G
-#SBATCH --time 6:00:00
-#SBATCH --job-name test
+#SBATCH --time 2:00:00
+#SBATCH --job-name ABP-data
 #SBATCH --error error-%j.txt
 #
 #######################################
 
 source .venv/bin/activate
-python abp_analysis.py -f pd_test.txt --PD --data -l 0.5 -u 5 -n 10
+python abp_analysis.py -f pd3.txt --PD --data -l 0.25 -u 4 -n 16
