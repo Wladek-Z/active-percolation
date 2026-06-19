@@ -26,8 +26,8 @@ def phase_diagram_data(filename, N, T, dt, w, D, mu, l1, u1, l2, u2, n):
         u2: upper bound of data along second axis
         n: number of data points
     """
-    lp_w_list = np.round(np.linspace(l1, u1, n), 2)
-    Pf_Pe_list = np.round(np.linspace(l2, u2, n), 2)
+    lp_w_list = np.round(np.linspace(l1, u1, n), 3)
+    Pf_Pe_list = np.round(np.linspace(l2, u2, n), 3)
 
     with open(filename, 'w') as f:
         f.write("lp_w,Pf_Pe,alpha,back_frac,mean_vx\n")
