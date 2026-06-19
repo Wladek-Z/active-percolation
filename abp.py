@@ -12,13 +12,12 @@ plt.rcParams['text.usetex'] = False
 # Developer tools ;)
 d_crit = 2**(1/6)
 d = 2
-noise = 1
-G = 1
-use_arrows = False
-centre_start = False
+noise = 0
+use_arrows = True
+centre_start = True
 
 @njit
-def run(N, r, e, T, dt, w, Pe, D, mu, Pf):
+def run(N, r, e, T, dt, w, Ps, D, mu, Pf):
     """
     Run the simulation for T timesteps, recording all positions and orientations.
 
@@ -29,7 +28,7 @@ def run(N, r, e, T, dt, w, Pe, D, mu, Pf):
         T: total number of timesteps
         dt: timestep
         w: width of the channel
-        Pe: active Peclet number
+        Ps: swim Peclet number
         D: diffusion number
         mu: repulsion number
         Pf: flow Peclet number
@@ -51,7 +50,7 @@ def run(N, r, e, T, dt, w, Pe, D, mu, Pf):
         # Update position and orientation
         r_old = r.copy()
         e_old = e.copy()
-        r, e = update(N, r_old, e_old, dt, w, Pe, D, mu, Pf)
+        r, e = update(N, r_old, e_old, dt, w, Ps, D, mu, Pf)
         # Store position and orientation of each particle
         for j in range(N):
             for k in range(2):
@@ -60,7 +59,7 @@ def run(N, r, e, T, dt, w, Pe, D, mu, Pf):
     return pos_H, pos_O   
 
 @njit
-def update(N, r, e, dt, w, Pe, D, mu, Pf):
+def update(N, r, e, dt, w, Ps, D, mu, Pf):
         """
         Update the positions and orientations of each particle.
         
@@ -70,7 +69,7 @@ def update(N, r, e, dt, w, Pe, D, mu, Pf):
             e: particle orientations
             dt: timestep
             w: width of the channel
-            Pe: active Peclet number
+            Ps: swim Peclet number
             D: diffusion number
             mu: repulsion number
             Pf: flow Peclet number
@@ -84,7 +83,7 @@ def update(N, r, e, dt, w, Pe, D, mu, Pf):
         # Iterate over every particle
         for i in range(N):
             # Compute active velocity term
-            r_active = dt * Pe * e[i] 
+            r_active = dt * Ps * e[i] 
             # Generate positional noise term
             r_noise = noise * np.sqrt(2 * dt) * D * np.random.normal(0, 1, 2) 
             # Update position via forward difference scheme
@@ -181,7 +180,7 @@ class ABP:
     An ensemble of active Brownian particles submerged in fluid, for a given system geometry (2D).
     """
 
-    def __init__(self, N, T, dt, width, Pe, D, mu, Pf):
+    def __init__(self, N, T, dt, width, Ps, D, mu, Pf, shear):
         """
         Initialise N realisations of the same particle at the origin with random orientations.
         
@@ -190,21 +189,23 @@ class ABP:
             T: total number of timesteps
             dt: timestep
             width: width of channel
-            Pe: active Peclet number
+            Ps: swim Peclet number
             D: diffusion number
             mu: repulsion number
             Pf: flow Peclet number
-            
+            shear: shear turned on/off            
         """
         # Initialise variables
         self.N = N
         self.T = T
         self.dt = dt
         self.width = width
-        self.Pe = Pe
+        self.Ps = Ps
         self.D = D
         self.mu = mu
         self.Pf = Pf
+        global G
+        G = 1 if shear else 0
         # Initialise orientation vector of each particle from a uniform rotationally symmetric distribution
         distribution = uniform_direction(2)
         self.e = distribution.rvs(N)
@@ -224,7 +225,7 @@ class ABP:
             orient: orientation history of each particle
         """
         # Run simulation and retrieve data
-        pos, orient = run(self.N, self.r, self.e, self.T, self.dt, self.width, self.Pe, self.D, self.mu, self.Pf)
+        pos, orient = run(self.N, self.r, self.e, self.T, self.dt, self.width, self.Ps, self.D, self.mu, self.Pf)
         return pos, orient        
 
 
@@ -301,17 +302,17 @@ class ABP:
         # Calculate persistence time
         tau = 1 / (d - 1) 
         # Theoretical mean square displacement
-        msd_theory = 2 * d * self.D**2 * t + 2 * self.Pe**2 * tau * t - 2 * self.Pe**2 * tau**2 * (1 - np.exp(-t / tau))
+        msd_theory = 2 * d * self.D**2 * t + 2 * self.Ps**2 * tau * t - 2 * self.Ps**2 * tau**2 * (1 - np.exp(-t / tau))
         # Theoretical msd for ballistic and diffusive regimes
-        msd_b = self.Pe**2 * t**2 + 2 * d * self.D**2 * t
-        msd_d = 2 * t * (d * self.D**2 + self.Pe**2 * tau)
+        msd_b = self.Ps**2 * t**2 + 2 * d * self.D**2 * t
+        msd_d = 2 * t * (d * self.D**2 + self.Ps**2 * tau)
         # Perform fit to late-time data
         a, b = self.get_MSD_fit(msd)
         t_fit = np.linspace(tau/self.dt, self.T, 100) * self.dt
         msd_fit = np.exp(b) * t_fit**a
-
+        # Plot MSD with fit and theory lines
         fig = plt.figure(figsize=[8, 6])
-        plt.title(f"Mean Square Displacement: Pe = {self.Pe}, " + r"Pe$_{\mathrm{f}}$ = " + f"{self.Pf}")
+        plt.title("Mean Square Displacement: " + r"Pe$_{\mathrm{s}}$ = " + f"{self.Ps}, " + r"Pe$_{\mathrm{f}}$ = " + f"{self.Pf}")
         plt.scatter(t, msd, color='black', marker='.', s=10, label='simulation')
         plt.loglog(t, msd_theory, color='red', linestyle='--', label='theory')
         plt.loglog(t, msd_b, color='blue', linestyle='--', label='ballistic')
@@ -335,7 +336,7 @@ class ABP:
             data1: orientation history
         """
         fig = plt.figure(figsize=[8, 6])
-        plt.title(f"Particle Trajectory: Pe = {self.Pe}, " + r"Pe$_{\mathrm{f}}$ = " + f"{self.Pf}")
+        plt.title(f"Particle Trajectory: " + r"Pe$_{\mathrm{s}}$ = " + f"{self.Ps}, " + r"Pe$_{\mathrm{f}}$ = " + f"{self.Pf}")
         
         # Consider only first particle
         x, y = data[:, 0, 0], data[:, 0, 1]
@@ -344,12 +345,11 @@ class ABP:
         end_x, end_y = data[-1, 0, 0], data[-1, 0, 1]
         plt.scatter(end_x, end_y, color='red', s=20, zorder=1)
         plt.scatter(x, y, color='black', marker='.', s=1, zorder=-1)
-
         plt.xlabel(r"$x$ position [$\sigma$]")
         plt.ylabel(r"$y$ position [$\sigma$]")
-
-        plt.ylim(0, self.width)
-
+        if noise == 1:
+            plt.ylim(0, self.width)
+        # Plot early-time orientations along trajectory
         if use_arrows:
             # Create array of arrow directions
             limit = int(self.T / 10)
@@ -360,8 +360,7 @@ class ABP:
             X, Y = x[:limit], y[:limit]
             X, Y = X[::spacing], Y[::spacing]
             # Make quiver plot
-            plt.quiver(X, Y, dx, dy, color='red', width=0.002, headwidth=3, headlength=4, scale=25)
-
+            plt.quiver(X, Y, dx, dy, color='red', width=0.002, headwidth=3, headlength=4, scale=25, zorder=-1)
         plt.tight_layout()
         plt.show()
     
@@ -386,13 +385,31 @@ class ABP:
         # Discard all unsuccessful attempts and convert to time units
         fpt = first[has_crossed] * self.dt
         success_rate = np.round(len(fpt) / self.N * 100, 1)
-
         # Build histogram of the FPTD
         fig = plt.figure(figsize=[8, 6])
         plt.hist(fpt, bins='auto')
         plt.title(f"First-Passage Time Distribution\nTarget: {target}" + r"$\sigma$, " + f"Success Rate: {success_rate}%")
         plt.xlabel("time [$1/D_r$]")
         plt.ylabel("crossings")
+        plt.tight_layout()
+        plt.show()
+
+    def initial_config(self):
+        """
+        View the initial configuration, consisting of the positions and orientations 
+        of all N particles.
+        """
+        fig = plt.figure(figsize=[8, 6])
+        plt.title("Initial Configuration")
+        plt.ylim(0, self.width)
+        plt.xlabel(r"$x$ position [$\sigma$]")
+        plt.ylabel(r"$y$ position [$\sigma$]")
+        # Plot position and orientation of each particle
+        for i in range(self.N):
+            x, y = self.r[i, 0], self.r[i, 1]
+            dx, dy = self.e[i, 0], self.e[i, 1]
+            plt.scatter(x, y, color='black', s=20, zorder=1)
+            plt.quiver(x, y, dx, dy, color='red', width=0.002, headwidth=3, headlength=4, scale=25, zorder=-1)
         plt.tight_layout()
         plt.show()
 
@@ -405,15 +422,21 @@ if __name__ == "__main__":
     parser.add_argument('--trajectory', action='store_true', help='Find the particle trajectory')
     parser.add_argument('--FPTD', action='store_true', help='Obtain first-passage time distribution')
     parser.add_argument('-T', type=int, default=100000, help='Number of timesteps over which to run the simulation')
-    parser.add_argument('-Pe', type=float, default=5, help='Active Peclet number')
+    parser.add_argument('-Ps', type=float, default=5, help='Swim Peclet number')
     parser.add_argument('-mu', type=float, default=10, help='Dimensionless force constant')
     parser.add_argument('-w',  type=float, default=10, help='Width of channel')
     parser.add_argument('-Pf', type=float, default=5, help='Flow Peclet number')
     parser.add_argument('-D', type=float, default=1, help='Dimensionless ratio of diffusion constants')
     parser.add_argument('-x', type=float, default=50, help='Distance along x-axis to check for first-passage')
+    parser.add_argument('--shear', action='store_true', help='Turn on the effects of shear')
+    parser.add_argument('--init', action='store_true', help='View the initial configuration of the system')
     args = parser.parse_args()
 
-    abp = ABP(args.N, args.T, args.dt, args.w, args.Pe, args.D, args.mu, args.Pf)
+    abp = ABP(args.N, args.T, args.dt, args.w, args.Ps, args.D, args.mu, args.Pf, args.shear)
+
+    if args.init:
+        abp.initial_config()
+
     pos, orient = abp.Run()
 
     if args.trajectory:

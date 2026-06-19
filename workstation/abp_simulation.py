@@ -7,7 +7,7 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 from abp import ABP
 
-def phase_diagram_data(filename, N, T, dt, w, D, mu, l1, u1, l2, u2, n):
+def phase_diagram(filename, N, T, dt, w, D, mu, l1, u1, l2, u2, n):
     """
     Collect data for various phase diagrams of the ABP system by varying the ration of both
     Peclet numbers and the ratio of the persistence length and the channel width.
@@ -27,25 +27,25 @@ def phase_diagram_data(filename, N, T, dt, w, D, mu, l1, u1, l2, u2, n):
         n: number of data points
     """
     lp_w_list = np.round(np.linspace(l1, u1, n), 3)
-    Pf_Pe_list = np.round(np.linspace(l2, u2, n), 3)
+    Pf_Ps_list = np.round(np.linspace(l2, u2, n), 3)
 
     with open(filename, 'w') as f:
-        f.write("lp_w,Pf_Pe,alpha,back_frac,mean_vx\n")
+        f.write("lp_w,Pf_Ps,alpha,up_frac,mean_vx\n")
 
         for lp_w in lp_w_list:
-            Pe = lp_w * w
-            for Pf_Pe in Pf_Pe_list:
-                Pf = Pf_Pe * Pe
-                abp = ABP(N, T, dt, w, Pe, D, mu, Pf)
+            Ps = lp_w * w
+            for Pf_Ps in Pf_Ps_list:
+                Pf = Pf_Ps * Ps
+                abp = ABP(N, T, dt, w, Ps, D, mu, Pf)
                 r, e = abp.Run()
                 _, msd = abp.get_MSD(r)
                 a, _ = abp.get_MSD_fit(msd)
                 vx = abp.get_xspeed(r)
-                back_frac = np.count_nonzero(vx < 0) / N / T
+                up_frac = np.count_nonzero(vx < 0) / N / T
                 mean_vx = np.mean(vx)
                 # Track progress
-                print(f"Pe = {Pe}, Pf = {Pf}, alpha = {a}, fraction = {back_frac}, mean x-velocity = {mean_vx}")
-                f.write(f"{lp_w},{Pf_Pe},{a},{back_frac},{mean_vx}\n")
+                print(f"Ps = {Ps}, Pf = {Pf}, alpha = {a}, fraction = {up_frac}, mean x-velocity = {mean_vx}")
+                f.write(f"{lp_w},{Pf_Ps},{a},{up_frac},{mean_vx}\n")
 
 if __name__ == "__main__":
     # Parse command line arguments
@@ -63,7 +63,12 @@ if __name__ == "__main__":
     parser.add_argument('-l2', type=float, help='Lower bound for data collection (second axis)')
     parser.add_argument('-u2', type=float, help='Upper bound for data collection (second axis)')
     parser.add_argument('-n', type=int, help='Number of data points')
+    parser.add_argument('--shear', action='store_true', help='Turn on the effects of shear')
+    parser.add_argument('-Ps', type=float, default=5, help='Swim Peclet number')
+    parser.add_argument('-Pf', type=float, default=5, help='Flow Peclet number')
+    parser.add_argument('--MSD', action='store_true', help='Find the mean square displacement')
+    parser.add_argument('--trajectory', action='store_true', help='Find the particle trajectory')
     args = parser.parse_args()
 
     if args.PD:
-        phase_diagram_data(args.f, args.N, args.T, args.dt, args.w, args.D, args.mu, args.l1, args.u1, args.l2, args.u2, args.n)
+        phase_diagram(args.f, args.N, args.T, args.dt, args.w, args.D, args.mu, args.l1, args.u1, args.l2, args.u2, args.n)
