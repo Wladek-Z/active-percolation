@@ -240,15 +240,15 @@ class ABP:
             data: position history
         
         Returns:
-            msd_xyz: the MSD along each Cartesian direction
+            msd_xy: the MSD along each Cartesian direction
             msd_tot: the total mean square displacement
         """
         # Calculate mean square displacement along each Cartesian direction
-        msd_xyz = np.mean((data - data[0])**2, axis=1)
+        msd_xy = np.mean((data - data[0])**2, axis=1)
         # Calculate total mean square displacement
-        msd_tot = np.sum(msd_xyz, axis=1)
+        msd_tot = np.sum(msd_xy, axis=1)
         # Delete first data point to avoid conflict with logscale
-        return np.delete(msd_xyz, 0), np.delete(msd_tot, 0)
+        return msd_xy[1:], msd_tot[1:]
     
     def get_MSD_fit(self, msd):
         """
@@ -298,7 +298,7 @@ class ABP:
         Arguments:
             data: position history
         """
-        _, msd = self.get_MSD(data)
+        msd_xy, msd = self.get_MSD(data)
 
         # Create array of measurement times
         t = np.arange(1, self.T + 1) * self.dt
@@ -326,6 +326,25 @@ class ABP:
         plt.ylabel(r"$\langle r^2 \rangle$ [$\sigma^2$]")
         plt.legend()
         plt.tight_layout()
+
+        # Calculate MSD in the x-direction and line of best fit fit
+        msd_x = msd_xy[:, 0]
+        a_x, b_x = self.get_MSD_fit(msd_x)
+        msd_fit_x = np.exp(b_x) * t_fit**a_x
+
+        fig = plt.figure(figsize=[8, 6])
+        plt.title("Longitudinal Mean Square Displacement: " + r"Pe$_{\mathrm{s}}$ = " + f"{self.Ps}, " + r"Pe$_{\mathrm{f}}$ = " + f"{self.Pf}")
+        plt.scatter(t, msd_x, color='black', marker='.', s=10, label='simulation')
+        plt.loglog(t, msd_theory/2, color='red', linestyle='--', label='theory')
+        plt.loglog(t, msd_b/2, color='blue', linestyle='--', label='ballistic')
+        plt.loglog(t, msd_d/2, color='green', linestyle='--', label='diffusive')
+        plt.loglog(t_fit, msd_fit_x, color='magenta', label=r'$\alpha$ = ' + f'{np.round(a_x, 2)}')
+        plt.axvline(tau, color='black', linestyle='dotted', label=r'$\tau_r$')
+        plt.xlabel(r"time [$1/D_r$]")
+        plt.ylabel(r"$\langle x^2 \rangle$ [$\sigma^2$]")
+        plt.legend()
+        plt.tight_layout()
+
         plt.show()
 
     def Trajectory(self, data, data1):
