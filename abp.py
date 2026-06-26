@@ -289,6 +289,22 @@ class ABP:
         # Calculate instantaneous velocity
         dx = x[1:] - x[:-1]
         return dx / self.dt
+    
+    def get_yspeed(self, data):
+        """
+        Obtain the instantaneous velocity of each particle in the y direction over time.
+        
+        Arguments:
+            data: position history
+        
+        Returns:
+            instantaneous velocity of each particle in the y direction (T, N)
+        """
+        # Get x-position history
+        y = data[:, :, 1]
+        # Calculate instantaneous velocity
+        dy = y[1:] - y[:-1]
+        return dy / self.dt
 
     def MSD(self, data):
         """
@@ -434,6 +450,42 @@ class ABP:
         plt.tight_layout()
         plt.show()
 
+    def blk_sfc_swim(self, data, theta):
+        """
+        Split the swimming direction data based on the proximity of particles to the channel walls.
+        
+        Arguments:
+            data: position history
+            theta: flattened swimming direction data 
+        
+        Returns:
+            theta_blk: swimming direction data in bulk
+            theta_sfc: swimming direction data near surface
+        """
+        y = data[:-1, :, 1].flatten()
+        bulk = (y >= 1.5) & (y <= (self.width - 1.5))
+        theta_blk = theta[bulk]
+        theta_sfc = theta[~bulk]
+        return theta_blk, theta_sfc
+    
+    def blk_sfc_orient(self, data, theta):
+        """
+        Split the orientation data based on the proximity of particles to the channel walls.
+        
+        Arguments:
+            data: position history
+            theta: flattened orientation angle data 
+        
+        Returns:
+            theta_blk: orientation angle data in bulk
+            theta_sfc: orientation angle data near surface
+        """
+        y = data[:, :, 1].flatten()
+        bulk = (y >= 1.5) & (y <= (self.width - 1.5))
+        theta_blk = theta[bulk]
+        theta_sfc = theta[~bulk]
+        return theta_blk, theta_sfc
+
     def PDF(self, p, o):
         """
         Obtain the probability density functions in both positional and
@@ -474,6 +526,13 @@ class ABP:
         plt.xticks([-np.pi, -np.pi/2, 0, np.pi/2, np.pi], [r'$-\pi$', r'$-\pi/2$', '0', r'$\pi/2$', r'$\pi$'])
         plt.tight_layout()
 
+        # Calculate orientation angles in the bulk and near the surface
+        theta_blk_o, theta_sfc_o = self.blk_sfc_orient(p, theta)
+        # Construct PDF showing the distribution of swimming direction in the bulk
+        pdf3, edges3 = np.histogram(theta_blk_o, bins=100, density=True)
+        x3 = 0.5 * (edges3[:-1] + edges3[1:])
+
+        
         plt.show()
 
 
