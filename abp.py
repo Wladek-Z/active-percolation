@@ -553,7 +553,7 @@ if __name__ == "__main__":
     parser.add_argument('-Pf', type=float, default=5, help='Flow Peclet number')
     parser.add_argument('-D', type=float, default=1, help='Dimensionless ratio of diffusion constants')
     parser.add_argument('-x', type=float, default=50, help='Distance along x-axis to check for first-passage')
-    parser.add_argument('-G', type=float, default=0, help='Geometrical factor related to particle aspect ratio')
+    parser.add_argument('-G', type=float, default=1, help='Geometrical factor related to particle aspect ratio')
     parser.add_argument('--init', action='store_true', help='View the initial configuration of the system')
     args = parser.parse_args()
 
