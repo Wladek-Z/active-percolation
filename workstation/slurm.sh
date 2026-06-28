@@ -9,4 +9,4 @@
 #######################################
 
 source .venv/bin/activate
-python abp_simulation.py -f pd500_noshear.txt --PD -l1 0.25 -u1 4 -l2 0.125 -u2 2 -n 16 -G 0 -N 500
+python abp_simulation.py -f pd500.txt --PD -l1 0.25 -u1 4 -l2 0.125 -u2 2 -n 16 -G 1 -N 500
