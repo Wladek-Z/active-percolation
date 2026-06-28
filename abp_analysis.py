@@ -15,12 +15,12 @@ def phase_diagram(filename):
         filename: file to stored data
     """
     # Read in and interpret data
-    lp_w, Pf_Ps, a, up_frac, mean_vx = np.loadtxt(filename, delimiter=',', skiprows=1, unpack=True)
+    lp_w, Pf_Ps, a, trap_frac, mean_vx = np.loadtxt(filename, delimiter=',', skiprows=1, unpack=True)
     nlp_w, nPf_Ps = np.unique(lp_w), np.unique(Pf_Ps)
     size_x = len(nlp_w)
     size_y = len(nPf_Ps)
     A = a.reshape(size_x, size_y).T
-    UF = up_frac.reshape(size_x, size_y).T
+    TF = trap_frac.reshape(size_x, size_y).T
     VX = mean_vx.reshape(size_x, size_y).T
     X, Y = np.meshgrid(nlp_w, nPf_Ps)
 
@@ -35,7 +35,7 @@ def phase_diagram(filename):
         return fig
     
     plot_pd(r'MSD scaling exoponent, $\alpha$', A)
-    plot_pd('upstream swimming fraction', UF)
+    plot_pd('trapping fraction', TF)
     plot_pd(r'mean longitudinal velocity [$\sigma D_r$]', VX)
     plt.show()
 

@@ -12,9 +12,9 @@ plt.rcParams['text.usetex'] = False
 # Developer tools ;)
 d_crit = 2**(1/6)
 d = 2
-noise = 1
-use_arrows = False
-centre_start = False
+noise = 0
+use_arrows = True
+centre_start = True
 
 @njit
 def run(N, r, e, T, dt, w, Ps, D, mu, Pf, G):
@@ -331,7 +331,7 @@ class ABP:
         msd_fit = np.exp(b) * t_fit**a
         # Plot MSD with fit and theory lines
         fig = plt.figure(figsize=[8, 6])
-        plt.title("Mean Square Displacement: " + r"Pe$_{\mathrm{s}}$ = " + f"{self.Ps}, " + r"Pe$_{\mathrm{f}}$ = " + f"{self.Pf}")
+        plt.title("Mean Square Displacement: " + r"Pe$_{\mathrm{s}}$ = " + f"{self.Ps}, " + r"Pe$_{\mathrm{f}}$ = " + f"{self.Pf}, $G$ = {self.G}")
         plt.scatter(t, msd, color='black', marker='.', s=10, label='simulation')
         plt.loglog(t, msd_theory, color='red', linestyle='--', label='theory')
         plt.loglog(t, msd_b, color='blue', linestyle='--', label='ballistic')
@@ -343,6 +343,7 @@ class ABP:
         plt.legend()
         plt.tight_layout()
 
+        """LEAVE OUT FOR NOW
         # Calculate MSD in the x-direction and line of best fit fit
         msd_x = msd_xy[:, 0]
         a_x, b_x = self.get_MSD_fit(msd_x)
@@ -360,6 +361,7 @@ class ABP:
         plt.ylabel(r"$\langle x^2 \rangle$ [$\sigma^2$]")
         plt.legend()
         plt.tight_layout()
+        """
 
         plt.show()
 
@@ -374,7 +376,7 @@ class ABP:
             data1: orientation history
         """
         fig = plt.figure(figsize=[8, 6])
-        plt.title(f"Particle Trajectory: " + r"Pe$_{\mathrm{s}}$ = " + f"{self.Ps}, " + r"Pe$_{\mathrm{f}}$ = " + f"{self.Pf}")
+        plt.title(f"Particle trajectory: " + r"Pe$_{\mathrm{s}}$ = " + f"{self.Ps}, " + r"Pe$_{\mathrm{f}}$ = " + f"{self.Pf}, $G$ = {self.G}")
         
         # Consider only first particle
         x, y = data[:, 0, 0], data[:, 0, 1]
@@ -488,13 +490,12 @@ class ABP:
         plt.xlabel("height along channel, $y/w$")
         plt.ylabel("probability density, $P(y/w)$")
         plt.xlim(0, 1)
-        plt.tight_layout()
 
         # Isolate orientation angles from orientation data
-        theta = np.arctan2(o[:, :, 1].flatten(), o[:, :, 0].flatten())
+        theta = np.arctan2(o[:, :, 1], o[:, :, 0])
 
         # Construct orientational PDF
-        pdf2, edges2 = np.histogram(theta, bins=100, density=True)
+        pdf2, edges2 = np.histogram(theta.flatten(), bins=100, density=True)
         x2 = 0.5 * (edges2[:-1] + edges2[1:])
 
         fig = plt.figure(figsize=[8, 6])
@@ -504,8 +505,26 @@ class ABP:
         plt.ylabel(r"probability density, $P(\theta)$")
         plt.xlim(-np.pi, np.pi)
         plt.xticks([-np.pi, -np.pi/2, 0, np.pi/2, np.pi], [r'$-\pi$', r'$-\pi/2$', '0', r'$\pi/2$', r'$\pi$'])
-        plt.tight_layout()
 
+        # Find particle orientations near the surface
+        vx = self.get_xspeed(p)
+        trap = self.trapping_index(p, vx)
+        theta_vx = theta[:-1, :].flatten()
+        theta_sfc = theta_vx[trap.flatten()]
+
+        # Construct orientational PDF near the surface
+        pdf3, edges3 = np.histogram(theta_sfc, bins=100, density=True)
+        x3 = 0.5 * (edges3[:-1] + edges3[1:])
+
+        fig = plt.figure(figsize=[8, 6])
+        plt.plot(x3, pdf3, color='black')
+        plt.title("Orientational distribution of ABPs (surface + upstream): " + r"Pe$_{\mathrm{s}}$ = " + f"{self.Ps}, " + r"Pe$_{\mathrm{f}}$ = " + f"{self.Pf}")
+        plt.xlabel(r"orientation angle, $\theta$")
+        plt.ylabel(r"probability density, $P(\theta)$")
+        plt.xlim(-np.pi, np.pi)
+        plt.xticks([-np.pi, -np.pi/2, 0, np.pi/2, np.pi], [r'$-\pi$', r'$-\pi/2$', '0', r'$\pi/2$', r'$\pi$'])
+
+        plt.tight_layout()
         plt.show()
 
 
