@@ -38,12 +38,16 @@ def phase_diagram(filename, N, T, dt, w, D, mu, l1, u1, l2, u2, n, G):
             for Pf_Ps in Pf_Ps_list:
                 Pf = Pf_Ps * Ps
                 abp = ABP(N, T, dt, w, Ps, D, mu, Pf, G)
-                r, e = abp.Run()
-                _, msd = abp.get_MSD(r)
+                r_hist, e_hist = abp.Run()
+                # Decorrelate the position and orientation data
+                r = r_hist[::abp.step]
+                e = e_hist[::abp.step]
+                # Get results
+                _, msd = abp.get_MSD(r_hist)
                 a, _ = abp.get_MSD_fit(msd)
                 vx = abp.get_xspeed(r)
                 trap = abp.trapping_index(r, vx)
-                trap_frac = np.count_nonzero(trap) / (N * T)
+                trap_frac = np.count_nonzero(trap) / (trap.shape[0] * trap.shape[1])
                 mean_vx = np.mean(vx)
                 # Track progress
                 print(f"Ps = {Ps}, Pf = {Pf}, alpha = {a}, trapping fraction = {trap_frac}, mean x-velocity = {mean_vx}")

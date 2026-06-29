@@ -12,9 +12,9 @@ plt.rcParams['text.usetex'] = False
 # Developer tools ;)
 d_crit = 2**(1/6)
 d = 2
-noise = 0
-use_arrows = True
-centre_start = True
+noise = 1
+use_arrows = False
+centre_start = False
 
 @njit
 def run(N, r, e, T, dt, w, Ps, D, mu, Pf, G):
@@ -208,6 +208,7 @@ class ABP:
         self.mu = mu
         self.Pf = Pf
         self.G = G
+        self.step = int(1 / dt)
         # Initialise orientation vector of each particle from a uniform rotationally symmetric distribution
         distribution = uniform_direction(2)
         self.e = distribution.rvs(N)
@@ -341,9 +342,7 @@ class ABP:
         plt.xlabel(r"time [$1/D_r$]")
         plt.ylabel(r"$\langle r^2 \rangle$ [$\sigma^2$]")
         plt.legend()
-        plt.tight_layout()
 
-        """LEAVE OUT FOR NOW
         # Calculate MSD in the x-direction and line of best fit fit
         msd_x = msd_xy[:, 0]
         a_x, b_x = self.get_MSD_fit(msd_x)
@@ -360,9 +359,25 @@ class ABP:
         plt.xlabel(r"time [$1/D_r$]")
         plt.ylabel(r"$\langle x^2 \rangle$ [$\sigma^2$]")
         plt.legend()
-        plt.tight_layout()
-        """
 
+        # Calculate MSD in the y-direction and line of best fit fit
+        msd_y = msd_xy[:, 1]
+        a_y, b_y = self.get_MSD_fit(msd_y)
+        msd_fit_y = np.exp(b_y) * t_fit**a_y
+
+        fig = plt.figure(figsize=[8, 6])
+        plt.title("Transverse Mean Square Displacement: " + r"Pe$_{\mathrm{s}}$ = " + f"{self.Ps}, " + r"Pe$_{\mathrm{f}}$ = " + f"{self.Pf}")
+        plt.scatter(t, msd_y, color='black', marker='.', s=10, label='simulation')
+        plt.loglog(t, msd_theory/2, color='red', linestyle='--', label='theory')
+        plt.loglog(t, msd_b/2, color='blue', linestyle='--', label='ballistic')
+        plt.loglog(t, msd_d/2, color='green', linestyle='--', label='diffusive')
+        plt.loglog(t_fit, msd_fit_y, color='magenta', label=r'$\alpha$ = ' + f'{np.round(a_y, 2)}')
+        plt.axvline(tau, color='black', linestyle='dotted', label=r'$\tau_r$')
+        plt.xlabel(r"time [$1/D_r$]")
+        plt.ylabel(r"$\langle y^2 \rangle$ [$\sigma^2$]")
+        plt.legend()
+
+        plt.tight_layout()
         plt.show()
 
     def Trajectory(self, data, data1):
@@ -452,31 +467,35 @@ class ABP:
         plt.tight_layout()
         plt.show()
 
-    def trapping_index(self, r, vx):
+    def trapping_index(self, p, vx):
         """
         Obtain the indices for proximity to the surface during upstream swimming.
         
         Arguments:
-            r: particle position history
+            p: particle position history
             vx: particle x-velocity history
         
         Returns:
             indices of particle data in 'trapped' state
         """
         # Extract y-position history and align with shape of x-velocity array
-        y = r[:-1, :, 1]
+        y = p[:-1, :, 1]
         # Return trapping condition
         return (vx < 0) & ((y < 1.5) | (y > (self.width - 1.5)))
 
-    def PDF(self, p, o):
+    def PDF(self, pos, orient):
         """
         Obtain the probability density functions in both positional and
         orientational space.
 
         Arguments:
-            p: position data
-            o: orientation data
+            pos: position data
+            orient: orientation data
         """
+        # Decorrelate position and orientation data
+        p = pos[::self.step]
+        o = orient[::self.step]
+        
         # Isolate vertical position from position data
         y = p[:, :, 1].flatten() / self.width
 

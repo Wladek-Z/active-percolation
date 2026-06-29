@@ -48,22 +48,22 @@ def pd_comparison(filename1, filename2):
         filename2: filepath to dataset without shear
     """
     # Read in and interpret data (1)
-    lp_w1, Pf_Ps1, a1, up_frac1, mean_vx1 = np.loadtxt(filename1, delimiter=',', skiprows=1, unpack=True)
+    lp_w1, Pf_Ps1, a1, trap_frac1, mean_vx1 = np.loadtxt(filename1, delimiter=',', skiprows=1, unpack=True)
     nlp_w1, nPf_Ps1 = np.unique(lp_w1), np.unique(Pf_Ps1)
     size_x1 = len(nlp_w1)
     size_y1 = len(nPf_Ps1)
     A1 = a1.reshape(size_x1, size_y1).T
-    UF1 = up_frac1.reshape(size_x1, size_y1).T
+    TF1 = trap_frac1.reshape(size_x1, size_y1).T
     VX1 = mean_vx1.reshape(size_x1, size_y1).T
     X1, Y1 = np.meshgrid(nlp_w1, nPf_Ps1)
 
     # Read in and interpret data (2)
-    lp_w2, Pf_Ps2, a2, up_frac2, mean_vx2 = np.loadtxt(filename2, delimiter=',', skiprows=1, unpack=True)
+    lp_w2, Pf_Ps2, a2, trap_frac2, mean_vx2 = np.loadtxt(filename2, delimiter=',', skiprows=1, unpack=True)
     nlp_w2, nPf_Ps2 = np.unique(lp_w2), np.unique(Pf_Ps2)
     size_x2 = len(nlp_w2)
     size_y2 = len(nPf_Ps2)
     A2 = a2.reshape(size_x2, size_y2).T
-    UF2 = up_frac2.reshape(size_x2, size_y2).T
+    TF2 = trap_frac2.reshape(size_x2, size_y2).T
     VX2 = mean_vx2.reshape(size_x2, size_y2).T
     X2, Y2 = np.meshgrid(nlp_w2, nPf_Ps2)
 
@@ -88,7 +88,7 @@ def pd_comparison(filename1, filename2):
         return fig
 
     plot_comparison_figure(r"MSD scaling exponent, $\alpha$", A1, A2)
-    plot_comparison_figure(r"upstream swimming fraction", UF1, UF2)
+    plot_comparison_figure("trapping fraction", TF1, TF2)
     plot_comparison_figure(r"mean longitudinal velocity [$\sigma D_r$]", VX1, VX2)
     plt.show()
 
