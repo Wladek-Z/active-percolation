@@ -283,7 +283,7 @@ class ABP:
             data: position history
         
         Returns:
-            instantaneous velocity of each particle in the x direction (T, N)
+            instantaneous velocity of each particle in the x direction (2D array)
         """
         # Get x-position history
         x = data[:, :, 0]
@@ -472,14 +472,14 @@ class ABP:
         Obtain the indices for proximity to the surface during upstream swimming.
         
         Arguments:
-            p: particle position history
+            p: reduced particle position history
             vx: particle x-velocity history
         
         Returns:
             indices of particle data in 'trapped' state
         """
         # Extract y-position history and align with shape of x-velocity array
-        y = p[:-1, :, 1]
+        y = p[:, :, 1]
         # Return trapping condition
         return (vx < 0) & ((y < 1.5) | (y > (self.width - 1.5)))
 
@@ -493,32 +493,30 @@ class ABP:
             orient: orientation data
         """
         # Decorrelate position and orientation data
-        p = pos[::self.step]
-        o = orient[::self.step]
+        p = pos[::self.step][:-1]
+        o = orient[::self.step][:-1]
         
         # Isolate vertical position from position data
         y = p[:, :, 1].flatten() / self.width
 
         # Construct positional PDF
-        pdf1, edges1 = np.histogram(y, bins=100, density=True)
-        x1 = 0.5 * (edges1[:-1] + edges1[1:])
+        pdf1, edges1 = np.histogram(y, bins=50, density=True)
 
         fig = plt.figure(figsize=[8, 6])
-        plt.plot(x1, pdf1, color='black')
+        plt.stairs(pdf1, edges1, color='black')
         plt.title(f"Spatial distribution of ABPs: " + r"Pe$_{\mathrm{s}}$ = " + f"{self.Ps}, " + r"Pe$_{\mathrm{f}}$ = " + f"{self.Pf}")
         plt.xlabel("height along channel, $y/w$")
         plt.ylabel("probability density, $P(y/w)$")
         plt.xlim(0, 1)
 
         # Isolate orientation angles from orientation data
-        theta = np.arctan2(o[:, :, 1], o[:, :, 0])
+        theta = np.arctan2(o[:, :, 1], o[:, :, 0]).flatten()
 
         # Construct orientational PDF
-        pdf2, edges2 = np.histogram(theta.flatten(), bins=100, density=True)
-        x2 = 0.5 * (edges2[:-1] + edges2[1:])
+        pdf2, edges2 = np.histogram(theta, bins=50, density=True)
 
         fig = plt.figure(figsize=[8, 6])
-        plt.plot(x2, pdf2, color='black')
+        plt.stairs(pdf2, edges2, color='black')
         plt.title("Orientational distribution of ABPs: " + r"Pe$_{\mathrm{s}}$ = " + f"{self.Ps}, " + r"Pe$_{\mathrm{f}}$ = " + f"{self.Pf}")
         plt.xlabel(r"orientation angle, $\theta$")
         plt.ylabel(r"probability density, $P(\theta)$")
@@ -526,17 +524,16 @@ class ABP:
         plt.xticks([-np.pi, -np.pi/2, 0, np.pi/2, np.pi], [r'$-\pi$', r'$-\pi/2$', '0', r'$\pi/2$', r'$\pi$'])
 
         # Find particle orientations near the surface
-        vx = self.get_xspeed(p)
-        trap = self.trapping_index(p, vx)
-        theta_vx = theta[:-1, :].flatten()
-        theta_sfc = theta_vx[trap.flatten()]
+        vx = self.get_xspeed(pos)
+        vx_independent = vx[::self.step]
+        trap = self.trapping_index(p, vx_independent)
+        theta_sfc = theta[trap.flatten()]
 
         # Construct orientational PDF near the surface
-        pdf3, edges3 = np.histogram(theta_sfc, bins=100, density=True)
-        x3 = 0.5 * (edges3[:-1] + edges3[1:])
+        pdf3, edges3 = np.histogram(theta_sfc, bins=50, density=True)
 
         fig = plt.figure(figsize=[8, 6])
-        plt.plot(x3, pdf3, color='black')
+        plt.stairs(pdf3, edges3, color='black')
         plt.title("Orientational distribution of ABPs (surface + upstream): " + r"Pe$_{\mathrm{s}}$ = " + f"{self.Ps}, " + r"Pe$_{\mathrm{f}}$ = " + f"{self.Pf}")
         plt.xlabel(r"orientation angle, $\theta$")
         plt.ylabel(r"probability density, $P(\theta)$")
