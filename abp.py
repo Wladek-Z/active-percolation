@@ -86,7 +86,7 @@ def update(N, r, e, dt, w, Ps, D, mu, Pf, G):
         for i in range(N):
             # Compute active velocity term
             r_active = dt * Ps * e[i] 
-            # Generate positional noise term
+            # Generate translational noise term
             r_noise = noise * np.sqrt(2 * dt) * D * np.random.normal(0, 1, 2) 
             # Update position via forward difference scheme
             r_new[i] = r[i] + r_active + r_noise
@@ -139,7 +139,7 @@ def orientation(e, dt, w, Pf, y, G):
     Returns:
         the updated orientation vector
     """
-    # Calculate change in orientation due to noise
+    # Calculate change in orientation due to rotational noise
     d_theta_noise = noise * np.sqrt(2 * dt) * np.random.normal(0, 1) 
     # Calculate change in orientation due to angular velocity from flow profile
     d_theta_flow = dt * Pf * 2 / w * (2 * y / w - 1) 
@@ -504,7 +504,7 @@ class ABP:
 
         fig = plt.figure(figsize=[8, 6])
         plt.stairs(pdf1, edges1, color='black')
-        plt.title(f"Spatial distribution of ABPs: " + r"Pe$_{\mathrm{s}}$ = " + f"{self.Ps}, " + r"Pe$_{\mathrm{f}}$ = " + f"{self.Pf}")
+        plt.title(f"Spatial distribution: " + r"Pe$_{\mathrm{s}}$ = " + f"{self.Ps}, " + r"Pe$_{\mathrm{f}}$ = " + f"{self.Pf}, $G$ = {self.G}")
         plt.xlabel("height along channel, $y/w$")
         plt.ylabel("probability density, $P(y/w)$")
         plt.xlim(0, 1)
@@ -517,7 +517,7 @@ class ABP:
 
         fig = plt.figure(figsize=[8, 6])
         plt.stairs(pdf2, edges2, color='black')
-        plt.title("Orientational distribution of ABPs: " + r"Pe$_{\mathrm{s}}$ = " + f"{self.Ps}, " + r"Pe$_{\mathrm{f}}$ = " + f"{self.Pf}")
+        plt.title("Orientational distribution: " + r"Pe$_{\mathrm{s}}$ = " + f"{self.Ps}, " + r"Pe$_{\mathrm{f}}$ = " + f"{self.Pf}, $G$ = {self.G}")
         plt.xlabel(r"orientation angle, $\theta$")
         plt.ylabel(r"probability density, $P(\theta)$")
         plt.xlim(-np.pi, np.pi)
@@ -534,7 +534,7 @@ class ABP:
 
         fig = plt.figure(figsize=[8, 6])
         plt.stairs(pdf3, edges3, color='black')
-        plt.title("Orientational distribution of ABPs (surface + upstream): " + r"Pe$_{\mathrm{s}}$ = " + f"{self.Ps}, " + r"Pe$_{\mathrm{f}}$ = " + f"{self.Pf}")
+        plt.title("Orientational distribution (surface + upstream): " + r"Pe$_{\mathrm{s}}$ = " + f"{self.Ps}, " + r"Pe$_{\mathrm{f}}$ = " + f"{self.Pf}, $G$ = {self.G}")
         plt.xlabel(r"orientation angle, $\theta$")
         plt.ylabel(r"probability density, $P(\theta)$")
         plt.xlim(-np.pi, np.pi)
